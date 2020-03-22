@@ -13,17 +13,22 @@ class SuffixNotFoundError(Exception):
 
 def result_path(
         source,
+        output_dir,
         template_suffix,
 ):
     suffix = source.suffix
     if not suffix.endswith(template_suffix):
         message = 'Suffix {template_suffix!r} not found: {source!r}'.format(
             template_suffix=template_suffix,
-            source=altendky.compat.fspath(source),
+            source=altendpy.compat.fspath(source),
         )
         raise SuffixNotFoundError(message)
 
-    return source.with_suffix(suffix[:-len(template_suffix)])
+    if output_dir is not None:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        return output_dir / source.with_suffix(suffix[:-len(template_suffix)])
+    else:
+        return suffix.with_suffix(suffix[:-len(template_suffix)])
 
 
 def render(source, destination, context={}, encoding='utf-8', newline='\n'):
@@ -70,7 +75,7 @@ class RelativeImporter:
         return module
 
 
-def process_root(root, suffix, output=None):
+def process_root(root, suffix, output_dir, output=None):
     paths = root.rglob('*.*{suffix}'.format(suffix=suffix))
 
     for path in paths:
@@ -82,7 +87,7 @@ def process_root(root, suffix, output=None):
 
         render(
             source=path,
-            destination=result_path(path, template_suffix=suffix),
+            destination=result_path(path, output_dir, template_suffix=suffix),
             context={
                 'importer': RelativeImporter(root=path.parent),
             },
